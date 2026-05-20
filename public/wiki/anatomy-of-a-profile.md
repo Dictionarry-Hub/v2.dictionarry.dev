@@ -5,7 +5,7 @@ author: santiagosayshey
 created: 2026-01-13
 tags: [wiki, profiles, radarr, sonarr]
 blurb: How profiles, custom formats, and regex fit together.
-featured: true
+featured: false
 ---
 
 Many people ask "How do I actually build profiles? I understand regex, I get custom formats, but how do qualities fit in? Where do scores come from? How does it all connect?"
