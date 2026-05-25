@@ -23,7 +23,7 @@
   // Each item should have: { title: string, code: string, language: string, icon?: Component }
   export let overflow = 'scroll'; // 'scroll' or 'wrap'
   
-  let activeTab = 0;
+  export let activeTab = 0;
   let copied = {};
   let codeElement;
   

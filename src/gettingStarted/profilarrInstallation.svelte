@@ -74,10 +74,39 @@
 
   const originCode = `- ORIGIN=https://profilarr.your.domain`;
 
-  const oidcCode = `- AUTH=oidc
-- OIDC_DISCOVERY_URL=https://your-provider/.well-known/openid-configuration
-- OIDC_CLIENT_ID=your-client-id
-- OIDC_CLIENT_SECRET=your-client-secret`;
+  let oidcActiveTab = 0;
+
+  const oidcInlineCode = `services:
+  profilarr:
+    # ...
+    environment:
+      - AUTH=oidc
+      - OIDC_DISCOVERY_URL=https://your-provider/.well-known/openid-configuration
+      - OIDC_CLIENT_ID=your-client-id
+      - OIDC_CLIENT_SECRET=your-client-secret`;
+
+  const oidcSecretCode = `services:
+  profilarr:
+    # ...
+    environment:
+      - AUTH=oidc
+      - OIDC_DISCOVERY_URL=https://your-provider/.well-known/openid-configuration
+      - OIDC_CLIENT_ID=your-client-id
+      - OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc_client_secret
+    secrets:
+      - oidc_client_secret
+
+secrets:
+  oidc_client_secret:
+    file: /path/to/your/secrets/oidc_client_secret`;
+
+  const oidcItems = [
+    { title: "Inline (Conventional)", code: oidcInlineCode, language: "yaml" },
+    { title: "Docker Secret (Paranoid)", code: oidcSecretCode, language: "yaml" },
+  ];
+
+  const secretFileCreateCode = `printf '%s' 'your-client-secret-here' > /path/to/your/secrets/oidc_client_secret
+chmod 600 /path/to/your/secrets/oidc_client_secret`;
 </script>
 
 <Seo title={seo.title} description={seo.description} image={seo.image} url={$router.path} />
@@ -138,13 +167,26 @@
     <li><code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">oidc</code> — single sign-on via an external identity provider</li>
   </ul>
   <p class="text-neutral-700 dark:text-neutral-300 mt-4">
-    For OIDC, set <code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">AUTH=oidc</code> along with the discovery URL, client ID, and client secret from your identity provider (Authentik, Authelia, Keycloak, etc.):
+    For OIDC, set <code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">AUTH=oidc</code> along with the discovery URL, client ID, and client secret from your identity provider (Authentik, Authelia, Keycloak, etc.). The client secret can be supplied directly or mounted from a file:
   </p>
 
   <div class="mt-4">
-    <CodeBlock items={[{ title: "Environment", code: oidcCode, language: "yaml" }]} />
+    <CodeBlock items={oidcItems} bind:activeTab={oidcActiveTab} />
   </div>
 
+  {#if oidcActiveTab === 1}
+    <p class="text-neutral-700 dark:text-neutral-300 mt-4">
+      When using the <strong>Docker Secret</strong> approach, create the secret file with no trailing newline- <code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">echo</code> adds one by default and will silently break authentication:
+    </p>
+
+    <div class="mt-4">
+      <CodeBlock items={[{ title: "Shell", code: secretFileCreateCode, language: "bash" }]} />
+    </div>
+
+    <p class="text-sm text-amber-700 dark:text-amber-400 mt-2">
+      Note: <code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">_FILE</code> works for any environment variable. If both <code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">VAR</code> and <code class="bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">VAR_FILE</code> are set, the file value takes precedence.
+    </p>
+  {/if}
 
   <h2 class="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mt-8 mb-4" id="unraid">Unraid</h2>
   <p class="text-neutral-700 dark:text-neutral-300 mt-6">
