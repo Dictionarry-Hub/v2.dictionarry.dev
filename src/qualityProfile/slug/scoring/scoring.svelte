@@ -17,65 +17,40 @@
   let maxValue = null;
   let selectedCategories = ['radarr', 'sonarr']; // Array for multiple selection
   
+  // The scores one Arr gets, following Profilarr: a Radarr or Sonarr score
+  // overrides the shared score for the same custom format, and the shared
+  // score applies otherwise.
+  function effectiveScores(shared, specific) {
+    const scores = new Map(shared.map(f => [f.name, f]));
+    specific.forEach(f => scores.set(f.name, f));
+    return scores;
+  }
+
   // Determine which formats to display based on selection
   $: displayFormats = (() => {
-    const hasRadarrFormats = custom_formats_radarr.length > 0;
-    const hasSonarrFormats = custom_formats_sonarr.length > 0;
-    const hasSharedFormats = custom_formats.length > 0;
-    
+    const radarr = effectiveScores(custom_formats, custom_formats_radarr);
+    const sonarr = effectiveScores(custom_formats, custom_formats_sonarr);
+    const showRadarr = selectedCategories.includes('radarr');
+    const showSonarr = selectedCategories.includes('sonarr');
+
     let formats = [];
-    const processedNames = new Set();
-    
-    // If both are selected, show all formats
-    if (selectedCategories.includes('radarr') && selectedCategories.includes('sonarr')) {
-      // First add shared formats (these apply to both)
-      if (hasSharedFormats) {
-        custom_formats.forEach(f => {
-          formats.push({ ...f, source: 'both' });
-          processedNames.add(f.name);
-        });
-      }
-      
-      // Add app-specific formats
-      if (hasRadarrFormats || hasSonarrFormats) {
-        const radarrNames = new Set(custom_formats_radarr.map(f => f.name));
-        const sonarrNames = new Set(custom_formats_sonarr.map(f => f.name));
-        
-        // Add Radarr-specific formats (not already in shared)
-        custom_formats_radarr.forEach(f => {
-          if (!processedNames.has(f.name)) {
-            // Check if this format is also in Sonarr
-            if (sonarrNames.has(f.name)) {
-              formats.push({ ...f, source: 'both' });
-            } else {
-              formats.push({ ...f, source: 'radarr' });
-            }
-            processedNames.add(f.name);
-          }
-        });
-        
-        // Add Sonarr-only formats (not already processed)
-        custom_formats_sonarr.forEach(f => {
-          if (!processedNames.has(f.name)) {
-            formats.push({ ...f, source: 'sonarr' });
-            processedNames.add(f.name);
-          }
-        });
-      }
-    } else if (selectedCategories.includes('radarr')) {
-      // Show only Radarr formats
-      if (hasRadarrFormats) {
-        formats = custom_formats_radarr.map(f => ({ ...f, source: 'radarr' }));
-      } else if (hasSharedFormats) {
-        formats = custom_formats.map(f => ({ ...f, source: 'both' }));
-      }
-    } else if (selectedCategories.includes('sonarr')) {
-      // Show only Sonarr formats
-      if (hasSonarrFormats) {
-        formats = custom_formats_sonarr.map(f => ({ ...f, source: 'sonarr' }));
-      } else if (hasSharedFormats) {
-        formats = custom_formats.map(f => ({ ...f, source: 'both' }));
-      }
+
+    if (showRadarr && showSonarr) {
+      // One row per format, with Radarr's score when both Arrs have it
+      const names = new Set([...radarr.keys(), ...sonarr.keys()]);
+      names.forEach(name => {
+        if (radarr.has(name) && sonarr.has(name)) {
+          formats.push({ ...radarr.get(name), source: 'both' });
+        } else if (radarr.has(name)) {
+          formats.push({ ...radarr.get(name), source: 'radarr' });
+        } else {
+          formats.push({ ...sonarr.get(name), source: 'sonarr' });
+        }
+      });
+    } else if (showRadarr) {
+      formats = [...radarr.values()].map(f => ({ ...f, source: 'radarr' }));
+    } else if (showSonarr) {
+      formats = [...sonarr.values()].map(f => ({ ...f, source: 'sonarr' }));
     }
     
     // Sort formats by score (descending) then by name
